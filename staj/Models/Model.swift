@@ -7,8 +7,12 @@
 
 import Foundation
 
-struct Model {
-    let id: Int
+struct Model: Codable {
+    let image: URL
     let name: String
     let status: String
+}
+
+struct ModelArray: Codable {
+    let results: [Model]
 }

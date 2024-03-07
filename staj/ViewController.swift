@@ -9,54 +9,68 @@ import UIKit
 
 class ViewController: UIViewController {
     
-    private lazy var collectionView: UICollectionView = {
-        let layout = UICollectionViewFlowLayout()
-        layout.itemSize = .init(width: 145, height: 33)
-        layout.scrollDirection = .horizontal
-        layout.minimumLineSpacing = 10
-        let view = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        view.dataSource = self
-        view.delegate = self
-        view.showsHorizontalScrollIndicator = false
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = .clear
-        view.register(CollectionViewCell.self, forCellWithReuseIdentifier: CollectionViewCell.reuseId)
-        return view
-    }()
+    private let  manager = Manager.shared
+    
+    private let tableView = UITableView()
+    
+    private var characters = [Model]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .cyan
-        fetchData()
+        view.addSubview(tableView)
+        tableView.frame = view.bounds
+        tableView.dataSource = self
+        tableView.delegate = self
+        tableView.rowHeight = 120
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "id")
+        fetchCharacters()
     }
-
-    private func setupTableView() {
-        view.addSubview(collectionView)
-        NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor,  constant: 20),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 13),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -40),
-            collectionView.heightAnchor.constraint(equalToConstant: 110),
-        ])
-        collectionView.register(CollectionViewCell.self, forCellWithReuseIdentifier: CollectionViewCell.reuseId)
+    
+    private func fetchCharacters() {
+        manager.fetchCharacters { [weak self] result in
+            switch result {
+            case .success(let characters):
+                self?.characters = characters
+            case .failure(let error):
+                print(error)
+            }
+            self?.tableView.reloadData()
+        }
     }
 }
 
-extension ViewController: UICollectionViewDataSource {
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return 5
+extension ViewController: UITableViewDataSource {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return characters.count
     }
     
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CollectionViewCell.reuseId, for: indexPath) as! CollectionViewCell
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "id", for: indexPath)
+        let character = characters[indexPath.row]
+        var content = cell.defaultContentConfiguration()
+        content.text = character.name
+        cell.contentConfiguration = content
         
+        manager.fetchImage(from: character.image) { imageData in
+            content.image = UIImage(data: imageData)
+            content.imageProperties.cornerRadius = 10
+            cell.contentConfiguration = content
+        }
         return cell
     }
-    
-    
 }
 
-extension ViewController: UICollectionViewDelegate {
-    
+extension ViewController: UITableViewDelegate {
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        
+        let selectedRow = characters[indexPath.row].status
+        
+        let secondViewController = SecondViewController()
+        secondViewController.selectedStatus = selectedRow
+        
+        navigationController?.pushViewController(secondViewController, animated: true)
+    }
 }
+
+
 
